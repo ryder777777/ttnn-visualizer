@@ -17,36 +17,21 @@ const apiMock = vi.hoisted(() => ({
     isPreviousLoading: false,
 }));
 
-vi.mock('../src/hooks/useAPI', () => ({
-    useOperationsList: () => ({ data: [{ id: 0 }, { id: 1 }].map((op) => ({ ...op, name: 'op' })) }),
-    useGetL1StartMarker: () => 0,
-    useGetL1SmallMarker: () => 1_500_000,
-    useTensors: () => ({ data: [] }),
-    useOperationDetails: (operationId: number) => ({
-        operationDetails: {
-            data: buildOperationDetailsData({
-                id: operationId,
-                name: 'ttnn.conv2d',
-                error: apiMock.error,
-                device_operations: apiMock.deviceOperations,
-            }),
-            isLoading: false,
-            status: 'success',
-        },
-    }),
-    usePreviousOperationDetails: (operationId: number) => ({
-        operationDetails: {
+vi.mock('../src/hooks/useAPI', async () => {
+    const { operationDetailsUseApiMock } = await import('./helpers/operationDetailsApiMock');
+
+    return operationDetailsUseApiMock({
+        operationDetails: () => ({
+            name: 'ttnn.conv2d',
+            error: apiMock.error,
+            device_operations: apiMock.deviceOperations,
+        }),
+        previousOperationDetails: (operationId: number) => ({
             data: apiMock.isPreviousLoading ? undefined : buildOperationDetailsData({ id: operationId - 1 }),
             isLoading: apiMock.isPreviousLoading,
-        },
-    }),
-    useGetTensorDeallocationReportByOperation: () => ({
-        lateDeallocationsByOperation: new Map(),
-        nonDeallocatedTensorList: new Map(),
-        status: 'success',
-        operationRange: null,
-    }),
-}));
+        }),
+    });
+});
 
 // Everything else on the page has its own spec; only the callout matters here.
 vi.mock('../src/components/operation-details/L1Plots', () => ({ default: () => null }));

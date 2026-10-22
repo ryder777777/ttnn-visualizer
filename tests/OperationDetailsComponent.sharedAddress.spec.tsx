@@ -10,12 +10,7 @@ import { BufferType } from '../src/model/BufferType';
 import { selectedAddressAtom, selectedTensorIdAtom } from '../src/store/app';
 import { summariseOperationBuffers } from '../src/functions/summariseOperationBuffers';
 import { TestProviders } from './helpers/TestProviders';
-import {
-    buildBufferData,
-    buildOperationDescription,
-    buildOperationDetailsData,
-    buildTensor,
-} from './helpers/operationDetailsFixtures';
+import { buildBufferData, buildOperationDescription, buildTensor } from './helpers/operationDetailsFixtures';
 
 // A plot click selects a tensor by id and address. When that tensor is not an
 // input or output of the open operation, the panel used to look it up by
@@ -62,32 +57,17 @@ function sharedAddressOperations() {
     ];
 }
 
-vi.mock('../src/hooks/useAPI', () => ({
-    useOperationsList: () => ({ data: sharedAddressOperations() }),
-    useGetL1StartMarker: () => 0,
-    useGetL1SmallMarker: () => 1_500_000,
-    useTensors: () => ({ data: [] }),
-    useOperationDetails: (operationId: number) => ({
-        operationDetails: {
-            data: buildOperationDetailsData({
-                id: operationId,
-                buffers: sharedAddressBuffers(),
-                buffersSummary: summariseOperationBuffers(sharedAddressBuffers()),
-            }),
-            isLoading: false,
-            status: 'success',
-        },
-    }),
-    usePreviousOperationDetails: (operationId: number) => ({
-        operationDetails: { data: buildOperationDetailsData({ id: operationId - 1 }), isLoading: false },
-    }),
-    useGetTensorDeallocationReportByOperation: () => ({
-        lateDeallocationsByOperation: new Map(),
-        nonDeallocatedTensorList: new Map(),
-        status: 'success',
-        operationRange: null,
-    }),
-}));
+vi.mock('../src/hooks/useAPI', async () => {
+    const { operationDetailsUseApiMock } = await import('./helpers/operationDetailsApiMock');
+
+    return operationDetailsUseApiMock({
+        operations: () => sharedAddressOperations(),
+        operationDetails: () => ({
+            buffers: sharedAddressBuffers(),
+            buffersSummary: summariseOperationBuffers(sharedAddressBuffers()),
+        }),
+    });
+});
 
 // Only the producer/consumer panel matters here; the rest is covered elsewhere.
 vi.mock('../src/components/operation-details/L1Plots', () => ({ default: () => null }));

@@ -13,7 +13,6 @@ import { TensorDeallocationReport } from '../src/model/BufferSummary';
 import { showDeallocationReportAtom } from '../src/store/app';
 import { TestProviders } from './helpers/TestProviders';
 import { buildTensorDeallocationReport } from './helpers/lateDeallocationFixtures';
-import { buildOperationDetailsData } from './helpers/operationDetailsFixtures';
 
 // The control's own spec proves the switch stays enabled at a zero count; it
 // can't see which report this view looks up or which wording it passes. Those
@@ -24,24 +23,17 @@ const apiMock = vi.hoisted(() => ({
     operationRange: null as NumberRange | null,
 }));
 
-vi.mock('../src/hooks/useAPI', () => ({
-    useOperationsList: () => ({ data: [{ id: 0 }, { id: 1 }, { id: 2 }].map((op) => ({ ...op, name: 'op' })) }),
-    useGetL1StartMarker: () => 0,
-    useGetL1SmallMarker: () => 1_500_000,
-    useTensors: () => ({ data: [] }),
-    useOperationDetails: (operationId: number) => ({
-        operationDetails: { data: buildOperationDetailsData({ id: operationId }), isLoading: false, status: 'success' },
-    }),
-    usePreviousOperationDetails: (operationId: number) => ({
-        operationDetails: { data: buildOperationDetailsData({ id: operationId - 1 }), isLoading: false },
-    }),
-    useGetTensorDeallocationReportByOperation: () => ({
-        lateDeallocationsByOperation: apiMock.lateDeallocationsByOperation,
-        nonDeallocatedTensorList: new Map(),
-        status: apiMock.status,
-        operationRange: apiMock.operationRange,
-    }),
-}));
+vi.mock('../src/hooks/useAPI', async () => {
+    const { operationDetailsUseApiMock } = await import('./helpers/operationDetailsApiMock');
+
+    return operationDetailsUseApiMock({
+        deallocationReport: () => ({
+            lateDeallocationsByOperation: apiMock.lateDeallocationsByOperation,
+            status: apiMock.status,
+            operationRange: apiMock.operationRange,
+        }),
+    });
+});
 
 // The plots, graph and stack trace are covered by their own specs and pull in
 // queries of their own; only the controls matter here.

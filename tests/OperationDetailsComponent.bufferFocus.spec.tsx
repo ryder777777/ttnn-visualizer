@@ -15,12 +15,7 @@ import { TestProviders } from './helpers/TestProviders';
 import type { AtomProviderInitialValues } from './helpers/atomProvider';
 import { BufferFocusProbe } from './helpers/BufferFocusProbe';
 import { getBufferFocusProbe, pressAndRelease } from './helpers/bufferFocus';
-import {
-    buildBufferData,
-    buildOperationDescription,
-    buildOperationDetailsData,
-    buildTensor,
-} from './helpers/operationDetailsFixtures';
+import { buildBufferData, buildOperationDescription, buildTensor } from './helpers/operationDetailsFixtures';
 
 const ADDRESS = 0x4000;
 const OPERATION_ID = 1;
@@ -40,39 +35,21 @@ function inputBuffers() {
     return [buildBufferData({ address: ADDRESS, buffer_type: BufferType.L1, max_size_per_bank: 4096 })];
 }
 
-vi.mock('../src/hooks/useAPI', () => ({
-    useGetClusterDescription: () => ({ data: undefined }),
-    useOperationsList: () => ({
-        data: [
+vi.mock('../src/hooks/useAPI', async () => {
+    const { operationDetailsUseApiMock } = await import('./helpers/operationDetailsApiMock');
+
+    return operationDetailsUseApiMock({
+        operations: () => [
             buildOperationDescription({ id: 0, name: 'producer', outputs: [inputTensor()] }),
             buildOperationDescription({ id: OPERATION_ID, name: 'consumer', inputs: [inputTensor()] }),
         ],
-    }),
-    useGetL1StartMarker: () => 0,
-    useGetL1SmallMarker: () => 1_500_000,
-    useTensors: () => ({ data: [] }),
-    useOperationDetails: (operationId: number) => ({
-        operationDetails: {
-            data: buildOperationDetailsData({
-                id: operationId,
-                inputs: [inputTensor()],
-                buffers: inputBuffers(),
-                buffersSummary: summariseOperationBuffers(inputBuffers()),
-            }),
-            isLoading: false,
-            status: 'success',
-        },
-    }),
-    usePreviousOperationDetails: (operationId: number) => ({
-        operationDetails: { data: buildOperationDetailsData({ id: operationId - 1 }), isLoading: false },
-    }),
-    useGetTensorDeallocationReportByOperation: () => ({
-        lateDeallocationsByOperation: new Map(),
-        nonDeallocatedTensorList: new Map(),
-        status: 'success',
-        operationRange: null,
-    }),
-}));
+        operationDetails: () => ({
+            inputs: [inputTensor()],
+            buffers: inputBuffers(),
+            buffersSummary: summariseOperationBuffers(inputBuffers()),
+        }),
+    });
+});
 
 vi.mock('../src/functions/createToastNotification', async () => {
     const { toastNotificationModuleMock } = await import('./helpers/mockToastNotification');
